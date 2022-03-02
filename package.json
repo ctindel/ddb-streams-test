@@ -1,0 +1,10 @@
+{
+  "name": "ddb-lambda-test",
+  "version": "1.0.0",
+  "description": "Test out DDB Stream Performance",
+  "main": "handler.js",
+  "dependencies": {
+    "aws-sdk": "^2.1084.0",
+    "async": "~1.5.2"
+  }
+}

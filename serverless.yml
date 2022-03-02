@@ -1,0 +1,45 @@
+service: ddb-streams-test
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  region: ${opt:region}
+  runtime: nodejs14.x
+  endpointType: REGIONAL
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: "*"
+
+resources:
+  Resources:
+    StreamsTestDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      #DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: pk 
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: pk 
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ddb-streams-test
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+functions:
+  ddb-streams-test:
+    handler: handler.handler
+    environment:
+      TARGET_DDB_TABLE: ddb-streams-test
+    events:
+      - stream:
+         type: dynamodb
+         arn: arn:aws:dynamodb:us-east-2:284628898641:table/ddb-streams-test/stream/2022-03-02T17:42:43.255
+         batchSize: 1
+         startingPosition: TRIM_HORIZON
