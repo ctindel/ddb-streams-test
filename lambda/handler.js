@@ -24,7 +24,7 @@ exports.handler = function(event, context, callback) {
         var msg;
         
         var params = {
-            TableName: 'ddb-lambda-test',
+            TableName: record.eventSourceARN.split(':')[5].split('/')[1],
             Key: {'pk': {'S': record.dynamodb.NewImage.pk.S}},
             UpdateExpression: 'SET updateTime = :updateTime, processTimeMS = :processTimeMS',
             ExpressionAttributeValues: {

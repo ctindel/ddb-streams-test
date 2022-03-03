@@ -1,0 +1,31 @@
+{
+  "Records": [
+    {
+      "eventID": "c4ca4238a0b923820dcc509a6f75849b",
+      "eventName": "INSERT",
+      "eventVersion": "1.1",
+      "eventSource": "aws:dynamodb",
+      "awsRegion": "us-east-2",
+      "dynamodb": {
+        "Keys": {
+          "pk": {
+            "S": "35920fd1-1be8-4e1b-818e-8219613e61e4"
+          }
+        },
+        "NewImage": {
+          "pk": {
+            "S": "35920fd1-1be8-4e1b-818e-8219613e61e4"
+          },
+          "insertTime": {
+            "S": "2022-03-02T22:45:23.457813"
+          }
+        },
+        "ApproximateCreationDateTime": 1428537600,
+        "SequenceNumber": "4421584500000000017450439091",
+        "SizeBytes": 26,
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "eventSourceARN": "arn:aws:dynamodb:us-east-2:284628898641:table/ddb-streams-test/stream/2022-03-02T17:42:43.255"
+    }
+  ]
+}

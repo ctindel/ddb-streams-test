@@ -4,7 +4,7 @@
   "description": "Test out DDB Stream Performance",
   "main": "handler.js",
   "dependencies": {
-    "aws-sdk": "^2.1084.0",
-    "async": "~1.5.2"
+    "async": "~1.5.2",
+    "aws-sdk": "^2.1085.0"
   }
 }
