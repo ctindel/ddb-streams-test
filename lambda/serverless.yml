@@ -27,7 +27,10 @@ resources:
           -
             AttributeName: pk 
             KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
+        #BillingMode: PAY_PER_REQUEST
+        ProvisionedThroughput:
+          ReadCapacityUnits: 100000
+          WriteCapacityUnits: 1000000
         TableName: ddb-streams-test
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
@@ -40,6 +43,6 @@ functions:
     events:
       - stream:
          type: dynamodb
-         arn: arn:aws:dynamodb:us-east-2:284628898641:table/ddb-streams-test/stream/2022-03-02T17:42:43.255
+         arn: arn:aws:dynamodb:us-east-2:284628898641:table/ddb-streams-test/stream/2022-03-04T18:52:32.519
          batchSize: 1
          startingPosition: TRIM_HORIZON

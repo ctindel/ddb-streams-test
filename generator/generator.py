@@ -54,14 +54,21 @@ class WorkerThread (threading.Thread):
                 'insertTime': datetime.datetime.now().isoformat() + 'Z'
             }
             
-            response = table.put_item(
-               Item=item
+            put_response = table.put_item(
+               Item=item,
+               ConditionExpression='attribute_not_exists(pk)'
             )
-            if response['ResponseMetadata']['HTTPStatusCode'] != 200:
-                print(response)
-                time.sleep(1)
+            if put_response['ResponseMetadata']['HTTPStatusCode'] != 200:
+                print(put_response)
+                # See if item was inserted successfully, but failed because a retry
+                #  hit the ConditionExpression.  If so we'll count it as successfully
+                #  inserted.
+                get_response = table.get_item(Key={'pk' : item['pk']}, 'ConsistentRead': True)
+                if get_response['Item']['insertTime'] == item['insertTime']:
+                    self.remainingItems = self.remainingItems - 1
+                else:
+                    time.sleep(1)
             else:
-                self.remainingItems = self.remainingItems - 1
         print ("Exiting " + self.name)
 
 signal.signal(signal.SIGINT, signalHandler)
