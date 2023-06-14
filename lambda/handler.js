@@ -1,46 +1,79 @@
 var aws = require("aws-sdk");
 const ddb = new aws.DynamoDB({apiVersion: '2012-08-10'});
 
-exports.handler = function(event, context, callback) {
+exports.handler = async function(event, context, callback) {
     console.log(JSON.stringify(event, null, 2));
     
-    if (event.Records.length !== 1) {
-        return callback("ERROR: This lambda function can only handle 1 event at a time", null);
-    }
+    var putItemRequests = []
+    var tableName = undefined;
+    var record = undefined;
     
-    event.Records.forEach(function(record) {
+    for (let i=0; i < event.Records.length; i++) {
+        record = event.Records[i];
         //console.log(record.eventID);
         //console.log(record.eventName);
         console.log('DynamoDB Record: %j', record.dynamodb);
-    });
-    
-    var record = event.Records[0];
-    
-    if (record.eventName == 'INSERT') {
-        var now = new Date()
-        var pk = record.dynamodb.NewImage.pk.S;
-        var insertTime = new Date(record.dynamodb.NewImage.insertTime.S);
-        var processTimeMS = now - insertTime;
-        var msg;
-        
-        var params = {
-            TableName: record.eventSourceARN.split(':')[5].split('/')[1],
-            Key: {'pk': {'S': record.dynamodb.NewImage.pk.S}},
-            UpdateExpression: 'SET updateTime = :updateTime, processTimeMS = :processTimeMS',
-            ExpressionAttributeValues: {
-                ":updateTime":{ "S": now.toISOString()}, 
-                ":processTimeMS": { "N" : processTimeMS.toString() }
+
+        // When we do a BWI to update the item the events come as INSERT instead of MODIFY
+        // So we'll skip events that already have the updateTime attribute
+        if (record.eventName == 'INSERT' && !record.dynamodb.NewImage.hasOwnProperty('updateTime')) {
+            if (typeof tableName == 'undefined') {
+                tableName = record.eventSourceARN.split(':')[5].split('/')[1];
             }
-        };
-        ddb.updateItem(params, function(err, data) {
-            if (err) {
-                msg = "Error with updateItem on pk " + pk + ": " + err;
+
+            var now = new Date()
+            var pk = record.dynamodb.NewImage.pk.S;
+            var insertTime = new Date(record.dynamodb.NewImage.insertTime.S);
+            var processTimeMS = now - insertTime;
+            var msg;
+
+            var putItemRequest = {
+                PutRequest: {
+                    Item: {
+                        "pk" : {'S': record.dynamodb.NewImage.pk.S},
+                        "insertTime" : {'S': record.dynamodb.NewImage.insertTime.S},
+                        "updateTime":{ "S": now.toISOString()},
+                        "processTimeMS": { "N" : processTimeMS.toString() }
+                    }
+                }
+            };          
+            putItemRequests.push(putItemRequest);
+        } else {
+            console.log("Event can be skipped");
+        }
+    };
+
+    console.log("putItemRequests length = " + putItemRequests.length);
+    
+    if (putItemRequests.length > 0) {
+        var remainingItems = putItemRequests;
+        while (true) {
+            var params = {
+                RequestItems : {}
+            };
+            params.RequestItems[tableName] = remainingItems;
+    
+            console.log("BWI Params: %j", params);
+            
+            try {
+                var data = await ddb.batchWriteItem(params).promise();
+            } catch (err) {
+                var msg;
+                msg = "Error with batchWriteItem: " + err;
                 console.log(msg);
                 return callback(msg);
             }
-            return callback(null);
-        });
+            console.log(data);
+            if (data.UnprocessedItems.length > 0) {
+                console.log("BWI left" + data.UnprocessedItems.length + " remaining, going around the loop again");
+                remainingItems = data.UnprocessedItems;
+            } else {
+                console.log("BWI successfully completed all items");
+                return callback(null);
+            }
+        }
     } else {
-        return callback(null, "No work to do on " + record.eventName + " event");
+        return callback(null);
     }
 };
+

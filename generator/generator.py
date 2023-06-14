@@ -1,4 +1,5 @@
 import boto3
+from botocore import exceptions
 import uuid
 import datetime
 import time
@@ -45,30 +46,42 @@ class WorkerThread (threading.Thread):
         self.ddbClient = ddbClient
         self.remainingItems = DDB_ITEM_COUNT / DDB_WRITER_THREADS
 
+    def makeNewItem(self):
+        return {
+            'pk': str(uuid.uuid4()),
+            'insertTime': datetime.datetime.now().isoformat() + 'Z'
+        }
+    
+
     def run(self):
         print ("Starting " + self.name)
         table = self.ddbClient.Table(DDB_TABLE_NAME)
+        nextItem = self.makeNewItem()
         while self.queue.empty() and self.remainingItems > 0 :
-            item = {
-                'pk': str(uuid.uuid4()),
-                'insertTime': datetime.datetime.now().isoformat() + 'Z'
-            }
-            
-            put_response = table.put_item(
-               Item=item,
-               ConditionExpression='attribute_not_exists(pk)'
-            )
-            if put_response['ResponseMetadata']['HTTPStatusCode'] != 200:
-                print(put_response)
-                # See if item was inserted successfully, but failed because a retry
-                #  hit the ConditionExpression.  If so we'll count it as successfully
-                #  inserted.
-                get_response = table.get_item(Key={'pk' : item['pk']}, 'ConsistentRead': True)
-                if get_response['Item']['insertTime'] == item['insertTime']:
+            try:
+                put_response = table.put_item(
+                   Item=nextItem,
+                   ConditionExpression='attribute_not_exists(pk)'
+                )
+                if put_response['ResponseMetadata']['HTTPStatusCode'] != 200:
+                    print(put_response)
+                    time.sleep(1)
+                else:
+                    nextItem = self.makeNewItem()
+                    self.remainingItems = self.remainingItems - 1
+            except exceptions.ClientError as e:
+                if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                    # If item was inserted successfully, but failed because a retry
+                    #  hit the ConditionExpression we'll count it as successfully
+                    #  inserted.
+                    nextItem = self.makeNewItem()
                     self.remainingItems = self.remainingItems - 1
                 else:
+                    print(e)
                     time.sleep(1)
-            else:
+            except BaseException as e:
+                print(e)
+                time.sleep(1)
         print ("Exiting " + self.name)
 
 signal.signal(signal.SIGINT, signalHandler)

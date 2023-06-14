@@ -1,0 +1,11 @@
+hive> create database ddb_streams_test;
+OK
+Time taken: 0.305 seconds
+hive> use ddb_streams_test;
+OK
+Time taken: 0.035 seconds
+hive> CREATE EXTERNAL TABLE ddb_streams_test (pk string, insertTime string, updateTime string, processTimeMS bigint) STORED BY 'org.apache.hadoop.hive.dynamodb.DynamoDBStorageHandler' TBLPROPERTIES ("dynamodb.table.name" = "ddb-streams-test
+", "dynamodb.column.mapping" = "pk:pk,insertTime:insertTime,updateTime:updateTime,processTimeMS:processTimeMS");
+OK
+Time taken: 1.686 seconds
+

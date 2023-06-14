@@ -35,14 +35,21 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
 
-functions:
-  ddb-streams-test:
-    handler: handler.handler
-    environment:
-      TARGET_DDB_TABLE: ddb-streams-test
-    events:
-      - stream:
-         type: dynamodb
-         arn: arn:aws:dynamodb:us-east-2:284628898641:table/ddb-streams-test/stream/2022-03-04T18:52:32.519
-         batchSize: 1
-         startingPosition: TRIM_HORIZON
+#functions:
+#  ddb-streams-test:
+#    handler: handler.handler
+#    environment:
+#      TARGET_DDB_TABLE: ddb-streams-test
+#    events:
+#      - stream:
+#         type: dynamodb
+#         arn: arn:aws:dynamodb:us-east-2:284628898641:table/ddb-streams-test/stream/2023-03-13T21:20:40.678
+#         batchSize: 25
+#         parallelizationFactor: 10
+#         startingPosition: TRIM_HORIZON
+#         filterPatterns:
+#           - eventName: [INSERT]
+#             dynamodb:
+#               NewImage:
+#                 updateTime:
+#                   [exists: false]
